@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2025 Daniel (San) Ávila
+Copyright (c) 2024 Galaxy S20 FE Performance Optimizer
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,46 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+================================================================================
+
+DISCLAIMER ADICIONAL PARA MODIFICAÇÕES DE SISTEMA ANDROID:
+
+Este software modifica configurações críticas do sistema Android em nível de
+kernel e hardware. O uso deste software implica nos seguintes riscos:
+
+1. RISCO DE HARDWARE: Modificações de frequência de CPU/GPU podem afetar a
+   longevidade dos componentes e causar superaquecimento.
+
+2. RISCO DE SISTEMA: Alterações em configurações de baixo nível podem causar
+   instabilidade, travamentos ou necessidade de reflash do firmware.
+
+3. RISCO DE GARANTIA: O uso deste software pode anular a garantia do dispositivo
+   junto ao fabricante.
+
+4. RISCO DE DADOS: Embora o software inclua mecanismos de backup, existe risco
+   de perda de dados ou necessidade de factory reset.
+
+5. COMPATIBILIDADE: O software é otimizado especificamente para Samsung Galaxy
+   S20 FE Snapdragon 865. O uso em outros dispositivos pode causar danos.
+
+AO USAR ESTE SOFTWARE, VOCÊ RECONHECE E ACEITA TODOS OS RISCOS MENCIONADOS
+ACIMA E CONCORDA QUE O USO É INTEIRAMENTE POR SUA CONTA E RISCO.
+
+OS DESENVOLVEDORES NÃO SE RESPONSABILIZAM POR:
+- Danos ao hardware do dispositivo
+- Perda de dados ou configurações
+- Anulação de garantia
+- Necessidade de reparo ou substituição do dispositivo
+- Qualquer outro problema decorrente do uso deste software
+
+RECOMENDAÇÕES DE SEGURANÇA:
+- Sempre faça backup completo do sistema antes de usar
+- Use apenas em dispositivos compatíveis especificados
+- Monitore temperatura durante uso intenso
+- Tenha conhecimento de como restaurar o firmware original
+- Use por períodos limitados para evitar danos por superaquecimento
+
+Este disclaimer não limita os termos da licença MIT acima, mas fornece
+informações adicionais sobre os riscos específicos associados a este tipo
+de software de modificação de sistema.
