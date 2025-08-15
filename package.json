@@ -1,0 +1,108 @@
+{
+  "name": "n8n-advanced-ai-agent",
+  "version": "1.0.0",
+  "description": "Advanced AI Agent in n8n with Redis caching and MCP tools integration",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "setup": "node scripts/setup.js",
+    "deploy": "node scripts/deploy.js",
+    "health-check": "node scripts/health-check.js"
+  },
+  "keywords": [
+    "n8n",
+    "ai",
+    "agent",
+    "redis",
+    "mcp",
+    "workflow",
+    "automation",
+    "cache",
+    "tools"
+  ],
+  "author": "AI Agent Team",
+  "license": "MIT",
+  "dependencies": {
+    "n8n": "^1.0.0",
+    "ioredis": "^5.3.2",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "jsdom": "^23.0.1",
+    "mysql2": "^3.6.5",
+    "pg": "^8.11.3",
+    "sqlite3": "^5.1.6",
+    "fs-extra": "^11.1.1",
+    "crypto": "^1.0.1",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "winston": "^3.11.0",
+    "joi": "^17.11.0",
+    "uuid": "^9.0.1",
+    "moment": "^2.29.4",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "eslint": "^8.54.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "supertest": "^6.3.3",
+    "@types/jest": "^29.5.8",
+    "@types/node": "^20.9.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/n8n-advanced-ai-agent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/n8n-advanced-ai-agent/issues"
+  },
+  "homepage": "https://github.com/your-org/n8n-advanced-ai-agent#readme",
+  "files": [
+    "src/",
+    "mcp-tools/",
+    "redis-integration/",
+    "n8n-workflows/",
+    "scripts/",
+    "docs/",
+    "README.md"
+  ],
+  "config": {
+    "redis": {
+      "host": "localhost",
+      "port": 6379,
+      "password": null,
+      "db": 0
+    },
+    "n8n": {
+      "webhookUrl": "http://localhost:5678/webhook/ai-agent",
+      "apiKey": "your-n8n-api-key"
+    },
+    "mcp": {
+      "tools": [
+        "filesystem_mcp",
+        "database_mcp",
+        "web_search_mcp",
+        "code_analysis_mcp",
+        "api_integration_mcp"
+      ]
+    }
+  }
+}
