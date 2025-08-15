@@ -1,0 +1,270 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "name": "Filesystem Operations",
+      "description": "Advanced file system operations with security controls",
+      "url": "http://mcp-filesystem:3001",
+      "capabilities": [
+        "read_file",
+        "write_file",
+        "list_directory",
+        "create_directory",
+        "delete_file",
+        "move_file",
+        "copy_file",
+        "get_file_stats",
+        "search_files",
+        "watch_directory"
+      ],
+      "configuration": {
+        "allowedPaths": ["/workspace", "/tmp"],
+        "maxFileSize": "10MB",
+        "allowedExtensions": [".txt", ".json", ".md", ".js", ".ts", ".py", ".yml", ".yaml"],
+        "enableWatching": true,
+        "cacheResults": true,
+        "cacheTtl": 300
+      },
+      "security": {
+        "readOnly": false,
+        "sandboxed": true,
+        "rateLimiting": {
+          "enabled": true,
+          "maxRequests": 100,
+          "windowMs": 60000
+        }
+      }
+    },
+    "database": {
+      "name": "Database Operations",
+      "description": "Multi-database query and management operations",
+      "url": "http://mcp-database:3002",
+      "capabilities": [
+        "execute_query",
+        "get_schema",
+        "list_tables",
+        "describe_table",
+        "create_table",
+        "insert_data",
+        "update_data",
+        "delete_data",
+        "backup_table",
+        "optimize_query"
+      ],
+      "configuration": {
+        "supportedDatabases": ["postgresql", "mysql", "sqlite", "mongodb"],
+        "queryTimeout": 30000,
+        "maxResultRows": 10000,
+        "enableTransactions": true,
+        "cacheQueries": true,
+        "cacheTtl": 600
+      },
+      "security": {
+        "readOnly": false,
+        "connectionPooling": true,
+        "queryValidation": true,
+        "rateLimiting": {
+          "enabled": true,
+          "maxRequests": 50,
+          "windowMs": 60000
+        }
+      }
+    },
+    "web": {
+      "name": "Web Scraping & API",
+      "description": "Advanced web scraping and API integration tools",
+      "url": "http://mcp-web:3003",
+      "capabilities": [
+        "fetch_url",
+        "scrape_page",
+        "extract_links",
+        "download_file",
+        "post_request",
+        "put_request",
+        "delete_request",
+        "upload_file",
+        "parse_html",
+        "parse_json",
+        "parse_xml",
+        "extract_metadata",
+        "check_robots_txt",
+        "get_page_screenshot"
+      ],
+      "configuration": {
+        "userAgent": "n8n-ai-agent/1.0",
+        "requestTimeout": 30000,
+        "maxConcurrentRequests": 10,
+        "followRedirects": true,
+        "maxRedirects": 5,
+        "enableCookies": true,
+        "enableJavaScript": false,
+        "respectRobotsTxt": true,
+        "cacheResponses": true,
+        "cacheTtl": 900
+      },
+      "security": {
+        "allowedDomains": [],
+        "blockedDomains": ["localhost", "127.0.0.1", "0.0.0.0"],
+        "maxFileSize": "50MB",
+        "rateLimiting": {
+          "enabled": true,
+          "maxRequests": 60,
+          "windowMs": 60000
+        }
+      }
+    },
+    "code": {
+      "name": "Code Analysis & Generation",
+      "description": "Advanced code analysis, generation, and refactoring tools",
+      "url": "http://mcp-code:3004",
+      "capabilities": [
+        "analyze_code",
+        "generate_code",
+        "refactor_code",
+        "format_code",
+        "lint_code",
+        "extract_functions",
+        "generate_tests",
+        "calculate_complexity",
+        "find_vulnerabilities",
+        "optimize_code",
+        "generate_documentation",
+        "convert_language"
+      ],
+      "configuration": {
+        "supportedLanguages": [
+          "javascript",
+          "typescript",
+          "python",
+          "java",
+          "go",
+          "rust",
+          "c",
+          "cpp",
+          "csharp",
+          "php",
+          "ruby",
+          "swift",
+          "kotlin"
+        ],
+        "maxFileSize": "5MB",
+        "enableASTAnalysis": true,
+        "enableStaticAnalysis": true,
+        "cacheAnalysis": true,
+        "cacheTtl": 1800
+      },
+      "security": {
+        "sandboxed": true,
+        "executionTimeout": 60000,
+        "memoryLimit": "512MB",
+        "rateLimiting": {
+          "enabled": true,
+          "maxRequests": 30,
+          "windowMs": 60000
+        }
+      }
+    },
+    "github": {
+      "name": "GitHub Integration",
+      "description": "Comprehensive GitHub repository and workflow management",
+      "url": "http://mcp-github:3005",
+      "capabilities": [
+        "list_repositories",
+        "get_repository",
+        "create_repository",
+        "get_file_content",
+        "create_file",
+        "update_file",
+        "delete_file",
+        "list_branches",
+        "create_branch",
+        "create_pull_request",
+        "list_issues",
+        "create_issue",
+        "get_commits",
+        "create_webhook",
+        "trigger_workflow"
+      ],
+      "configuration": {
+        "apiVersion": "2022-11-28",
+        "baseUrl": "https://api.github.com",
+        "timeout": 30000,
+        "retryAttempts": 3,
+        "cacheResponses": true,
+        "cacheTtl": 300
+      },
+      "security": {
+        "requiresAuth": true,
+        "scopes": ["repo", "workflow", "read:user"],
+        "rateLimiting": {
+          "enabled": true,
+          "maxRequests": 100,
+          "windowMs": 3600000
+        }
+      }
+    },
+    "slack": {
+      "name": "Slack Integration",
+      "description": "Slack messaging and workflow automation",
+      "url": "http://mcp-slack:3006",
+      "capabilities": [
+        "send_message",
+        "send_dm",
+        "create_channel",
+        "list_channels",
+        "get_channel_info",
+        "invite_user",
+        "upload_file",
+        "get_user_info",
+        "set_status",
+        "schedule_message",
+        "create_reminder",
+        "post_to_webhook"
+      ],
+      "configuration": {
+        "apiVersion": "v1",
+        "baseUrl": "https://slack.com/api",
+        "timeout": 15000,
+        "retryAttempts": 3,
+        "enableThreads": true,
+        "enableReactions": true
+      },
+      "security": {
+        "requiresAuth": true,
+        "scopes": ["chat:write", "channels:read", "users:read"],
+        "rateLimiting": {
+          "enabled": true,
+          "maxRequests": 50,
+          "windowMs": 60000
+        }
+      }
+    }
+  },
+  "globalSettings": {
+    "enableMetrics": true,
+    "enableLogging": true,
+    "logLevel": "info",
+    "metricsInterval": 60000,
+    "healthCheckInterval": 30000,
+    "defaultTimeout": 30000,
+    "maxRetryAttempts": 3,
+    "retryDelay": 1000,
+    "enableCaching": true,
+    "defaultCacheTtl": 600,
+    "maxCacheSize": "100MB"
+  },
+  "redis": {
+    "host": "redis",
+    "port": 6379,
+    "password": "",
+    "db": 1,
+    "keyPrefix": "mcp:",
+    "enableCluster": false
+  },
+  "monitoring": {
+    "enableHealthChecks": true,
+    "enableMetrics": true,
+    "metricsPort": 9090,
+    "healthCheckEndpoint": "/health",
+    "metricsEndpoint": "/metrics"
+  }
+}

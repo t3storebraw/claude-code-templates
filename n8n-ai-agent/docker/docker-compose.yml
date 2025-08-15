@@ -1,0 +1,262 @@
+version: '3.8'
+
+services:
+  # n8n Workflow Automation Platform
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-ai-agent
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme123}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678}
+      - GENERIC_TIMEZONE=${TIMEZONE:-UTC}
+      - N8N_LOG_LEVEL=info
+      - N8N_LOG_OUTPUT=console
+      - N8N_METRICS=true
+      - N8N_DIAGNOSTICS_ENABLED=true
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB:-n8n}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-n8n}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-n8n}
+      # AI Model API Keys
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      # Redis Configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      # MCP Configuration
+      - MCP_SERVER_FILESYSTEM_URL=http://mcp-filesystem:3001
+      - MCP_SERVER_DATABASE_URL=http://mcp-database:3002
+      - MCP_SERVER_WEB_URL=http://mcp-web:3003
+      - MCP_SERVER_CODE_URL=http://mcp-code:3004
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows
+      - ./n8n/credentials:/home/node/.n8n/credentials
+      - ./n8n/nodes:/home/node/.n8n/nodes
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database for n8n
+  postgres:
+    image: postgres:15-alpine
+    container_name: n8n-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-n8n}
+      - POSTGRES_USER=${POSTGRES_USER:-n8n}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-n8n}
+      - POSTGRES_NON_ROOT_USER=${POSTGRES_NON_ROOT_USER:-n8n}
+      - POSTGRES_NON_ROOT_PASSWORD=${POSTGRES_NON_ROOT_PASSWORD:-n8n}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-n8n} -d ${POSTGRES_DB:-n8n}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache Server
+  redis:
+    image: redis:7-alpine
+    container_name: n8n-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server 
+      --appendonly yes 
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Redis Commander (Web UI for Redis)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    depends_on:
+      - redis
+    networks:
+      - n8n-network
+
+  # MCP Filesystem Server
+  mcp-filesystem:
+    build: ./mcp-servers/filesystem
+    container_name: mcp-filesystem
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - MCP_SERVER_PORT=3001
+      - ALLOWED_PATHS=/workspace,/tmp
+      - MAX_FILE_SIZE=10MB
+    volumes:
+      - ./workspace:/workspace
+      - ./tmp:/tmp
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP Database Server
+  mcp-database:
+    build: ./mcp-servers/database
+    container_name: mcp-database
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      - MCP_SERVER_PORT=3002
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user:pass@localhost:5432/db}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3002/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP Web Scraping Server
+  mcp-web:
+    build: ./mcp-servers/web
+    container_name: mcp-web
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      - MCP_SERVER_PORT=3003
+      - USER_AGENT=n8n-ai-agent/1.0
+      - REQUEST_TIMEOUT=30000
+      - MAX_CONCURRENT_REQUESTS=10
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3003/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP Code Analysis Server
+  mcp-code:
+    build: ./mcp-servers/code
+    container_name: mcp-code
+    restart: unless-stopped
+    ports:
+      - "3004:3004"
+    environment:
+      - MCP_SERVER_PORT=3004
+      - SUPPORTED_LANGUAGES=javascript,typescript,python,java,go,rust
+      - MAX_FILE_SIZE=5MB
+    volumes:
+      - ./workspace:/workspace:ro
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3004/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Performance Monitoring Dashboard
+  monitoring:
+    build: ./monitoring
+    container_name: n8n-monitoring
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - N8N_URL=http://n8n:5678
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://${POSTGRES_USER:-n8n}:${POSTGRES_PASSWORD:-n8n}@postgres:5432/${POSTGRES_DB:-n8n}
+      - REFRESH_INTERVAL=5000
+    depends_on:
+      - n8n
+      - redis
+      - postgres
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: n8n-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - n8n
+      - monitoring
+    networks:
+      - n8n-network
+    profiles:
+      - production
+
+volumes:
+  n8n_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  n8n-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
