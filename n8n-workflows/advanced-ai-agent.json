@@ -1,0 +1,317 @@
+{
+  "name": "Advanced AI Agent with Redis & MCP Tools",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-agent",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true,
+          "responseHeaders": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "http-trigger",
+      "name": "HTTP Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "advanced-ai-agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Request validation and parsing\nconst body = $input.first().json;\n\n// Validate required fields\nif (!body.message || !body.sessionId) {\n  throw new Error('Missing required fields: message and sessionId');\n}\n\n// Extract request data\nconst requestData = {\n  message: body.message,\n  sessionId: body.sessionId,\n  userId: body.userId || 'anonymous',\n  conversationId: body.conversationId || Date.now().toString(),\n  timestamp: new Date().toISOString(),\n  requestId: Math.random().toString(36).substr(2, 9)\n};\n\n// Add to output\nreturn [{\n  json: {\n    ...requestData,\n    cacheKey: `ai-agent:session:${requestData.sessionId}`,\n    toolCacheKey: `ai-agent:tool:${requestData.requestId}`,\n    conversationCacheKey: `ai-agent:conversation:${requestData.userId}:${requestData.conversationId}`\n  }\n}];"
+      },
+      "id": "request-parser",
+      "name": "Request Parser",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "={{ $json.cacheKey }}",
+        "options": {}
+      },
+      "id": "redis-cache-check",
+      "name": "Redis Cache Check",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cache-hit",
+              "leftValue": "={{ $json }}",
+              "rightValue": null,
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cache-decision",
+      "name": "Cache Decision",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return cached response\nconst cachedData = JSON.parse($input.first().json);\n\nreturn [{\n  json: {\n    success: true,\n    cached: true,\n    response: cachedData.response,\n    timestamp: cachedData.timestamp,\n    requestId: $('Request Parser').first().json.requestId\n  }\n}];"
+      },
+      "id": "cached-response",
+      "name": "Cached Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI Agent Orchestrator\nconst requestData = $('Request Parser').first().json;\n\n// Analyze intent and select tools\nconst intent = analyzeIntent(requestData.message);\nconst selectedTools = selectTools(intent);\n\nfunction analyzeIntent(message) {\n  const lowerMessage = message.toLowerCase();\n  \n  if (lowerMessage.includes('file') || lowerMessage.includes('read') || lowerMessage.includes('write')) {\n    return 'file_operations';\n  } else if (lowerMessage.includes('database') || lowerMessage.includes('query') || lowerMessage.includes('data')) {\n    return 'database_operations';\n  } else if (lowerMessage.includes('search') || lowerMessage.includes('web') || lowerMessage.includes('find')) {\n    return 'web_search';\n  } else if (lowerMessage.includes('code') || lowerMessage.includes('analyze') || lowerMessage.includes('optimize')) {\n    return 'code_analysis';\n  } else {\n    return 'general_conversation';\n  }\n}\n\nfunction selectTools(intent) {\n  const toolMap = {\n    file_operations: ['filesystem_mcp'],\n    database_operations: ['database_mcp'],\n    web_search: ['web_search_mcp'],\n    code_analysis: ['code_analysis_mcp', 'filesystem_mcp'],\n    general_conversation: ['llm_integration']\n  };\n  \n  return toolMap[intent] || ['llm_integration'];\n}\n\nreturn [{\n  json: {\n    ...requestData,\n    intent,\n    selectedTools,\n    processingStage: 'orchestration'\n  }\n}];"
+      },
+      "id": "ai-orchestrator",
+      "name": "AI Orchestrator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// MCP Tools Router\nconst data = $input.first().json;\nconst tools = data.selectedTools;\n\n// Route to appropriate MCP tools\nconst toolExecutions = [];\n\nfor (const tool of tools) {\n  const toolExecution = {\n    tool,\n    requestId: data.requestId,\n    message: data.message,\n    sessionId: data.sessionId,\n    executionId: `${tool}_${Date.now()}`\n  };\n  \n  toolExecutions.push(toolExecution);\n}\n\nreturn toolExecutions.map(execution => ({\n  json: {\n    ...data,\n    ...execution,\n    processingStage: 'tool_execution'\n  }\n}));"
+      },
+      "id": "mcp-router",
+      "name": "MCP Tools Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tool Execution Engine\nconst execution = $input.first().json;\n\n// Simulate MCP tool execution\nasync function executeMCPTool(tool, message) {\n  // This would integrate with actual MCP tools\n  const toolResponses = {\n    filesystem_mcp: {\n      success: true,\n      data: `File operation completed for: ${message}`,\n      tool: 'filesystem_mcp'\n    },\n    database_mcp: {\n      success: true,\n      data: `Database query executed for: ${message}`,\n      tool: 'database_mcp'\n    },\n    web_search_mcp: {\n      success: true,\n      data: `Web search results for: ${message}`,\n      tool: 'web_search_mcp'\n    },\n    code_analysis_mcp: {\n      success: true,\n      data: `Code analysis completed for: ${message}`,\n      tool: 'code_analysis_mcp'\n    },\n    llm_integration: {\n      success: true,\n      data: `AI response generated for: ${message}`,\n      tool: 'llm_integration'\n    }\n  };\n  \n  return toolResponses[tool] || toolResponses.llm_integration;\n}\n\n// Execute the tool\nconst result = await executeMCPTool(execution.tool, execution.message);\n\nreturn [{\n  json: {\n    ...execution,\n    ...result,\n    processingStage: 'tool_completed',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "tool-executor",
+      "name": "Tool Executor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Response Aggregator\nconst toolResults = $input.all();\n\n// Aggregate all tool results\nconst aggregatedResponse = {\n  success: true,\n  responses: toolResults.map(result => result.json),\n  summary: `Processed ${toolResults.length} tools successfully`,\n  timestamp: new Date().toISOString()\n};\n\n// Get original request data\nconst originalRequest = $('Request Parser').first().json;\n\nreturn [{\n  json: {\n    ...originalRequest,\n    ...aggregatedResponse,\n    processingStage: 'aggregation_complete'\n  }\n}];"
+      },
+      "id": "response-aggregator",
+      "name": "Response Aggregator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $json.cacheKey }}",
+        "value": "={{ JSON.stringify($json) }}",
+        "options": {
+          "ttl": 3600
+        }
+      },
+      "id": "redis-cache-store",
+      "name": "Redis Cache Store",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [2000, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Response Formatter\nconst data = $input.first().json;\n\n// Format final response\nconst formattedResponse = {\n  success: data.success,\n  data: {\n    message: data.message,\n    response: data.responses || data.response,\n    summary: data.summary,\n    tools_used: data.selectedTools || [],\n    intent: data.intent,\n    cached: data.cached || false\n  },\n  metadata: {\n    requestId: data.requestId,\n    sessionId: data.sessionId,\n    timestamp: data.timestamp,\n    processingTime: Date.now() - new Date(data.timestamp).getTime()\n  }\n};\n\nreturn [{\n  json: formattedResponse\n}];"
+      },
+      "id": "response-formatter",
+      "name": "Response Formatter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "http-response",
+      "name": "HTTP Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2440, 400]
+    }
+  ],
+  "connections": {
+    "HTTP Trigger": {
+      "main": [
+        [
+          {
+            "node": "Request Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Parser": {
+      "main": [
+        [
+          {
+            "node": "Redis Cache Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Cache Check": {
+      "main": [
+        [
+          {
+            "node": "Cache Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cache Decision": {
+      "main": [
+        [
+          {
+            "node": "Cached Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Orchestrator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Orchestrator": {
+      "main": [
+        [
+          {
+            "node": "MCP Tools Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Tools Router": {
+      "main": [
+        [
+          {
+            "node": "Tool Executor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool Executor": {
+      "main": [
+        [
+          {
+            "node": "Response Aggregator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Aggregator": {
+      "main": [
+        [
+          {
+            "node": "Redis Cache Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Cache Store": {
+      "main": [
+        [
+          {
+            "node": "Response Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Formatter": {
+      "main": [
+        [
+          {
+            "node": "HTTP Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cached Response": {
+      "main": [
+        [
+          {
+            "node": "Response Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "advanced-ai-agent",
+      "name": "Advanced AI Agent"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -1,110 +1,417 @@
-[![npm version](https://img.shields.io/npm/v/claude-code-templates.svg)](https://www.npmjs.com/package/claude-code-templates)
-[![npm downloads](https://img.shields.io/npm/dt/claude-code-templates.svg)](https://www.npmjs.com/package/claude-code-templates)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://opensource.org/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![GitHub stars](https://img.shields.io/github/stars/davila7/claude-code-templates.svg?style=social&label=Star)](https://github.com/davila7/claude-code-templates)
-[![Open in DeepGraph](https://img.shields.io/badge/%E2%9C%A8%20Open%20in-DeepGraph-a465f7?style=flat)](https://www.deepgraph.co/davila7/claude-code-templates)
+# Advanced AI Agent in n8n with Redis & MCP Tools
 
-# Claude Code Templates
+A high-performance, scalable AI agent built on n8n workflow automation platform with Redis caching and multiple MCP (Model Control Protocol) tools integration.
 
-**CLI tool for configuring and monitoring Claude Code** - Quick setup for any project with framework-specific commands and real-time monitoring dashboard.
+## 🚀 Features
 
-## 🚀 Quick Start
+- **Advanced AI Orchestration**: Intelligent tool selection and execution
+- **Redis Caching**: Multi-layer caching for optimal performance
+- **MCP Tools Integration**: File system, database, web search, and code analysis
+- **n8n Workflow Automation**: Visual workflow design and execution
+- **High Performance**: Optimized for speed and scalability
+- **Real-time Monitoring**: Comprehensive logging and health checks
+- **Docker Support**: Easy deployment with containerization
 
-```bash
-# Interactive setup (recommended)
-npx claude-code-templates@latest
+## 🏗️ Architecture
 
-# Real-time analytics dashboard  
-npx claude-code-templates@latest --analytics
-
-# Real-time Chat Web UI
-npx claude-code-templates@latest --chats
-
-# System health check
-npx claude-code-templates@latest --health-check
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        A[HTTP Client] --> B[API Gateway]
+    end
+    
+    subgraph "n8n Workflow Engine"
+        B --> C[HTTP Trigger]
+        C --> D[Request Parser]
+        D --> E[Redis Cache Check]
+        E --> F{Cache Hit?}
+        F -->|Yes| G[Return Cached Response]
+        F -->|No| H[AI Agent Orchestrator]
+        H --> I[MCP Tools Router]
+        I --> J[Tool Execution Engine]
+        J --> K[Response Aggregator]
+        K --> L[Redis Cache Store]
+        L --> M[Response Formatter]
+        M --> N[HTTP Response]
+    end
+    
+    subgraph "Redis Cache Layer"
+        O[Session Cache]
+        P[Tool Results Cache]
+        Q[Conversation History]
+        R[Rate Limiting]
+    end
+    
+    subgraph "MCP Tools"
+        S[File System MCP]
+        T[Database MCP]
+        U[Web Search MCP]
+        V[Code Analysis MCP]
+    end
+    
+    E --> O
+    E --> P
+    E --> Q
+    E --> R
+    I --> S
+    I --> T
+    I --> U
+    I --> V
 ```
 
-<img width="1279" height="827" alt="Claude Code Analytics Dashboard" src="https://github.com/user-attachments/assets/02cbe18b-21ed-4b8f-83e9-da86b4fcd95b" />
+## 📋 Prerequisites
 
----
+- Node.js 16+ and npm
+- Redis 6+
+- n8n (will be installed automatically)
+- Docker (optional, for containerized deployment)
 
-## ✨ Core Features
+## 🛠️ Installation
 
-- **📋 Smart Project Setup** - Auto-detect and configure any project with framework-specific commands
-- **📊 Real-time Analytics** - Monitor Claude Code sessions with live state detection and performance metrics  
-- **🔍 Health Check** - Comprehensive system validation with actionable recommendations
-- **🧩 Individual Components** - Install specialized agents, commands, and MCPs individually
+### Quick Start
 
-## 🌐 Browse & Install Components
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-org/n8n-advanced-ai-agent.git
+   cd n8n-advanced-ai-agent
+   ```
 
-**[🎯 Browse All Components](https://aitmpl.com)** - Interactive web interface to explore and install templates, agents, commands, and MCPs.
+2. **Run the setup script**
+   ```bash
+   npm run setup
+   ```
 
-<img width="1155" height="855" alt="Browse Components Interface" src="https://github.com/user-attachments/assets/72b89472-890f-40a1-b89f-28441e6a8ce4" />
+3. **Start Redis**
+   ```bash
+   redis-server
+   ```
 
-## 🎯 What You Get
+4. **Start n8n**
+   ```bash
+   npm run n8n:start
+   ```
 
-| Component | Description | Example |
-|-----------|-------------|---------|
-| **CLAUDE.md** | Project-specific configuration | Framework best practices, coding standards |
-| **Commands** | Custom slash commands | `/generate-tests`, `/check-file`, `/optimize-bundle` |
-| **Agents** | AI specialists for domains | API security audit, React performance, database optimization |
-| **MCPs** | External service integrations | GitHub, databases, development tools |
-| **Analytics** | Real-time monitoring dashboard | Live session tracking, usage statistics, exports |
+5. **Import the workflow**
+   - Open n8n at http://localhost:5678
+   - Import `n8n-workflows/advanced-ai-agent.json`
 
-## 📖 Documentation
+### Manual Installation
 
-**[📚 Complete Documentation](https://docs.aitmpl.com/)** - Comprehensive guides, examples, and API reference
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-Quick links:
-- [Getting Started](https://docs.aitmpl.com/docs/intro) - Installation and first steps
-- [Project Setup](https://docs.aitmpl.com/docs/project-setup/interactive-setup) - Configure your projects
-- [Analytics Dashboard](https://docs.aitmpl.com/docs/analytics/overview) - Real-time monitoring
-- [Individual Components](https://docs.aitmpl.com/docs/components/overview) - Agents, Commands, MCPs
-- [CLI Options](https://docs.aitmpl.com/docs/cli-options) - All available commands
-- **[🔍 Tracking System Architecture](TRACKING_SYSTEM.md)** - Technical documentation with Mermaid diagrams
+2. **Create environment file**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. **Start services**
+   ```bash
+   # Start Redis
+   redis-server
+   
+   # Start n8n
+   n8n start
+   
+   # Start AI Agent
+   npm start
+   ```
+
+## 🐳 Docker Deployment
+
+### Using Docker Compose
+
+```bash
+# Build and start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Individual Containers
+
+```bash
+# Build the AI Agent image
+docker build -t n8n-ai-agent .
+
+# Run with Redis
+docker run -d --name redis redis:7-alpine
+docker run -d --name ai-agent --link redis n8n-ai-agent
+```
+
+## 📖 Usage
+
+### API Endpoints
+
+#### Process AI Request
+```bash
+POST /ai-agent
+Content-Type: application/json
+
+{
+  "message": "Analyze the code in src/index.js",
+  "sessionId": "user-session-123",
+  "userId": "user-456",
+  "conversationId": "conv-789"
+}
+```
+
+#### Health Check
+```bash
+GET /health
+```
+
+#### Get Conversation History
+```bash
+GET /conversation/:userId/:conversationId
+```
+
+### Example Requests
+
+#### File Analysis
+```bash
+curl -X POST http://localhost:3000/ai-agent \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Analyze the complexity of src/ai-agent-orchestrator.js",
+    "sessionId": "session-123",
+    "userId": "user-456"
+  }'
+```
+
+#### Database Query
+```bash
+curl -X POST http://localhost:3000/ai-agent \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Query the users table for active users",
+    "sessionId": "session-123",
+    "userId": "user-456"
+  }'
+```
+
+#### Web Search
+```bash
+curl -X POST http://localhost:3000/ai-agent \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Search for latest AI trends",
+    "sessionId": "session-123",
+    "userId": "user-456"
+  }'
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```bash
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# n8n Configuration
+N8N_WEBHOOK_URL=http://localhost:5678/webhook/ai-agent
+N8N_API_KEY=your-n8n-api-key
+
+# Logging
+LOG_LEVEL=info
+LOG_FILE=logs/app.log
+
+# Security
+JWT_SECRET=your-jwt-secret-key
+API_KEY=your-api-key
+
+# MCP Tools
+MCP_FILESYSTEM_ENABLED=true
+MCP_DATABASE_ENABLED=true
+MCP_WEBSEARCH_ENABLED=true
+MCP_CODEANALYSIS_ENABLED=true
+```
+
+### Redis Cache Configuration
+
+```json
+{
+  "host": "localhost",
+  "port": 6379,
+  "password": null,
+  "db": 0,
+  "keyPrefix": "ai-agent:",
+  "defaultTTL": 3600
+}
+```
+
+## 🧪 Testing
+
+### Run Tests
+```bash
+# All tests
+npm test
+
+# Watch mode
+npm run test:watch
+
+# Coverage report
+npm run test:coverage
+```
+
+### Test Examples
+
+```bash
+# Test file system operations
+npm run test:filesystem
+
+# Test database operations
+npm run test:database
+
+# Test web search
+npm run test:websearch
+
+# Test caching
+npm run test:cache
+```
+
+## 📊 Monitoring
+
+### Health Check
+```bash
+npm run health-check
+```
+
+### Logs
+```bash
+# View application logs
+tail -f logs/app.log
+
+# View error logs
+tail -f logs/error.log
+
+# View combined logs
+tail -f logs/combined.log
+```
+
+### Metrics
+- Request processing time
+- Cache hit/miss rates
+- Tool execution success rates
+- Error rates and types
+- Resource usage (CPU, memory, Redis)
+
+## 🔍 MCP Tools
+
+### File System MCP
+- File reading and writing
+- Directory listing
+- Code analysis and complexity calculation
+- File search and pattern matching
+
+### Database MCP
+- Multiple database support (MySQL, PostgreSQL, SQLite)
+- Query execution and optimization
+- Table structure analysis
+- Database backup and restore
+
+### Web Search MCP
+- Web scraping and content extraction
+- Search engine integration
+- Content analysis and sentiment detection
+- Structured data extraction
+
+### Code Analysis MCP
+- Static code analysis
+- Complexity metrics
+- Security vulnerability detection
+- Code optimization suggestions
+
+## 🚀 Performance Optimization
+
+### Caching Strategy
+- **L1 Cache**: In-memory for frequently accessed data
+- **L2 Cache**: Redis for distributed caching
+- **Tool Cache**: Individual tool result caching
+- **Session Cache**: User session management
+
+### Scalability Features
+- Horizontal scaling with multiple n8n instances
+- Load balancing support
+- Database connection pooling
+- Asynchronous tool execution
+
+## 🔒 Security
+
+### Authentication
+- API key authentication
+- JWT token validation
+- Rate limiting per user
+- Session management
+
+### Data Protection
+- Sensitive data encryption
+- PII handling compliance
+- Audit logging
+- Data retention policies
 
 ## 🤝 Contributing
 
-We welcome contributions from the open source community! 
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-**[🎯 Browse Components](https://aitmpl.com)** to see what's available, then check our [contributing guidelines](CONTRIBUTING.md) to add your own templates, agents, commands, or MCPs.
+### Development Setup
+```bash
+# Install development dependencies
+npm install
 
-**Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.**
+# Run linting
+npm run lint
 
-## Attribution
+# Fix linting issues
+npm run lint:fix
 
-This collection includes components from multiple sources:
+# Run tests
+npm test
+```
 
-**Agents Collection:**
-- **wshobson/agents Collection** by [wshobson](https://github.com/wshobson/agents) - Licensed under MIT License (48 agents)
-
-**Commands Collection:**
-- **awesome-claude-code Commands** by [hesreallyhim](https://github.com/hesreallyhim/awesome-claude-code) - Licensed under CC0 1.0 Universal (21 commands)
-
-## 📄 License
+## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔗 Links
+## 🙏 Acknowledgments
 
-- **🌐 Browse Components**: [aitmpl.com](https://aitmpl.com)
-- **📚 Documentation**: [docs.aitmpl.com](https://docs.aitmpl.com)
-- **🐛 Issues**: [GitHub Issues](https://github.com/davila7/claude-code-templates/issues)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/davila7/claude-code-templates/discussions)
-- **🔒 Security**: [Security Policy](SECURITY.md)
+- [n8n](https://n8n.io/) - Workflow automation platform
+- [Redis](https://redis.io/) - In-memory data structure store
+- [MCP](https://modelcontextprotocol.io/) - Model Context Protocol
+- [Node.js](https://nodejs.org/) - JavaScript runtime
 
-## ⭐ Star History
+## 📞 Support
 
-<a href="https://star-history.com/#davila7/claude-code-templates&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=davila7/claude-code-templates&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=davila7/claude-code-templates&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=davila7/claude-code-templates&type=Date" />
-  </picture>
-</a>
+- **Documentation**: [docs/](docs/)
+- **Issues**: [GitHub Issues](https://github.com/your-org/n8n-advanced-ai-agent/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-org/n8n-advanced-ai-agent/discussions)
+- **Email**: support@your-org.com
+
+## 🔄 Changelog
+
+### v1.0.0
+- Initial release
+- Basic AI agent functionality
+- Redis caching integration
+- MCP tools support
+- n8n workflow automation
+- Docker deployment support
 
 ---
 
-**⭐ Found this useful? Give us a star to support the project!**
+**⭐ Star this repository if you find it useful!**
