@@ -1,0 +1,637 @@
+{
+  "name": "Advanced AI Agent with Redis & MCP Tools",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "ai-agent-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "={{ $json.session_id }}_context",
+        "options": {}
+      },
+      "id": "redis-get-context",
+      "name": "Get Context from Redis",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis-credentials",
+          "name": "Redis Cache"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "context-exists",
+              "leftValue": "={{ $('Get Context from Redis').item.json.value }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-context-exists",
+      "name": "Context Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Initialize new conversation context\nconst sessionId = $input.item.json.session_id || 'default';\nconst userMessage = $input.item.json.message || '';\nconst timestamp = new Date().toISOString();\n\nconst newContext = {\n  session_id: sessionId,\n  conversation_history: [\n    {\n      role: 'user',\n      content: userMessage,\n      timestamp: timestamp\n    }\n  ],\n  user_preferences: {},\n  tools_used: [],\n  performance_metrics: {\n    created_at: timestamp,\n    total_requests: 1,\n    cache_hits: 0,\n    cache_misses: 1,\n    avg_response_time: 0\n  },\n  metadata: {\n    last_updated: timestamp,\n    version: '1.0'\n  }\n};\n\nreturn [{\n  json: {\n    ...newContext,\n    current_message: userMessage,\n    is_new_session: true\n  }\n}];"
+      },
+      "id": "initialize-context",
+      "name": "Initialize New Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse existing context and add new message\nconst existingContext = JSON.parse($('Get Context from Redis').item.json.value || '{}');\nconst userMessage = $input.item.json.message || '';\nconst timestamp = new Date().toISOString();\n\n// Update conversation history\nexistingContext.conversation_history = existingContext.conversation_history || [];\nexistingContext.conversation_history.push({\n  role: 'user',\n  content: userMessage,\n  timestamp: timestamp\n});\n\n// Update metrics\nexistingContext.performance_metrics = existingContext.performance_metrics || {};\nexistingContext.performance_metrics.total_requests = (existingContext.performance_metrics.total_requests || 0) + 1;\nexistingContext.performance_metrics.cache_hits = (existingContext.performance_metrics.cache_hits || 0) + 1;\nexistingContext.metadata.last_updated = timestamp;\n\nreturn [{\n  json: {\n    ...existingContext,\n    current_message: userMessage,\n    is_new_session: false\n  }\n}];"
+      },
+      "id": "update-context",
+      "name": "Update Existing Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an advanced AI agent with access to multiple tools through MCP (Model Context Protocol). You can:\n\n1. **File Operations**: Read, write, and manage files\n2. **Database Operations**: Query and manipulate databases\n3. **Web Operations**: Scrape web pages and make API calls\n4. **Code Operations**: Analyze, generate, and refactor code\n5. **GitHub Operations**: Manage repositories and workflows\n6. **Slack Operations**: Send messages and manage channels\n\nYou have access to Redis for caching to improve performance. Always consider using available tools to provide comprehensive and accurate responses.\n\nContext: {{ $json.conversation_history }}\nTools Used: {{ $json.tools_used }}\nPerformance: {{ $json.performance_metrics }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.current_message }}"
+            }
+          ]
+        }
+      },
+      "id": "ai-agent-llm",
+      "name": "AI Agent LLM",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze AI response and determine if MCP tools are needed\nconst aiResponse = $input.item.json.choices[0].message.content;\nconst userMessage = $('Initialize New Context').item?.json?.current_message || $('Update Existing Context').item?.json?.current_message;\n\n// Tool detection patterns\nconst toolPatterns = {\n  filesystem: /\\b(read file|write file|list directory|file system|save to file|load from file)\\b/i,\n  database: /\\b(query database|sql|select|insert|update|delete|database|table)\\b/i,\n  web: /\\b(fetch url|scrape|download|web request|api call|http)\\b/i,\n  code: /\\b(analyze code|generate code|refactor|format code|programming|function)\\b/i,\n  github: /\\b(github|repository|repo|pull request|commit|branch)\\b/i,\n  slack: /\\b(slack|send message|notification|channel)\\b/i\n};\n\nconst neededTools = [];\nconst combinedText = `${userMessage} ${aiResponse}`;\n\nfor (const [tool, pattern] of Object.entries(toolPatterns)) {\n  if (pattern.test(combinedText)) {\n    neededTools.push(tool);\n  }\n}\n\nreturn [{\n  json: {\n    ai_response: aiResponse,\n    user_message: userMessage,\n    needed_tools: neededTools,\n    requires_tools: neededTools.length > 0,\n    analysis_timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "analyze-tool-needs",
+      "name": "Analyze Tool Requirements",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "tools-required",
+              "leftValue": "={{ $json.requires_tools }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-tools-required",
+      "name": "Tools Required?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://mcp-filesystem:3001/execute",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tool",
+              "value": "filesystem"
+            },
+            {
+              "name": "action",
+              "value": "auto_detect"
+            },
+            {
+              "name": "context",
+              "value": "={{ $json.user_message }}"
+            },
+            {
+              "name": "ai_response",
+              "value": "={{ $json.ai_response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mcp-filesystem",
+      "name": "MCP Filesystem Tool",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 120],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://mcp-database:3002/execute",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tool",
+              "value": "database"
+            },
+            {
+              "name": "action",
+              "value": "auto_detect"
+            },
+            {
+              "name": "context",
+              "value": "={{ $json.user_message }}"
+            },
+            {
+              "name": "ai_response",
+              "value": "={{ $json.ai_response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mcp-database",
+      "name": "MCP Database Tool",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 240],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://mcp-web:3003/execute",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tool",
+              "value": "web"
+            },
+            {
+              "name": "action",
+              "value": "auto_detect"
+            },
+            {
+              "name": "context",
+              "value": "={{ $json.user_message }}"
+            },
+            {
+              "name": "ai_response",
+              "value": "={{ $json.ai_response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mcp-web",
+      "name": "MCP Web Tool",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 360],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://mcp-code:3004/execute",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tool",
+              "value": "code"
+            },
+            {
+              "name": "action",
+              "value": "auto_detect"
+            },
+            {
+              "name": "context",
+              "value": "={{ $json.user_message }}"
+            },
+            {
+              "name": "ai_response",
+              "value": "={{ $json.ai_response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mcp-code",
+      "name": "MCP Code Tool",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 480],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate tool results and prepare final response\nconst originalData = $('Analyze Tool Requirements').item.json;\nconst toolResults = [];\n\n// Collect results from all MCP tools\nconst mcpNodes = ['MCP Filesystem Tool', 'MCP Database Tool', 'MCP Web Tool', 'MCP Code Tool'];\n\nfor (const nodeName of mcpNodes) {\n  try {\n    const nodeData = $(nodeName).item?.json;\n    if (nodeData && nodeData.success) {\n      toolResults.push({\n        tool: nodeName.toLowerCase().replace('mcp ', '').replace(' tool', ''),\n        result: nodeData.result,\n        execution_time: nodeData.execution_time || 0\n      });\n    }\n  } catch (error) {\n    // Tool didn't execute or failed - continue\n  }\n}\n\n// Calculate performance metrics\nconst totalExecutionTime = toolResults.reduce((sum, result) => sum + result.execution_time, 0);\nconst toolsUsed = toolResults.map(r => r.tool);\n\n// Enhance AI response with tool results\nlet enhancedResponse = originalData.ai_response;\nif (toolResults.length > 0) {\n  enhancedResponse += '\\n\\n**Tool Results:**\\n';\n  toolResults.forEach(result => {\n    enhancedResponse += `\\n**${result.tool}**: ${JSON.stringify(result.result, null, 2)}`;\n  });\n}\n\nreturn [{\n  json: {\n    response: enhancedResponse,\n    tool_results: toolResults,\n    tools_used: toolsUsed,\n    performance: {\n      total_execution_time: totalExecutionTime,\n      tools_executed: toolResults.length,\n      timestamp: new Date().toISOString()\n    },\n    success: true\n  }\n}];"
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate Tool Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle case when no tools are required\nconst originalData = $('Analyze Tool Requirements').item.json;\n\nreturn [{\n  json: {\n    response: originalData.ai_response,\n    tool_results: [],\n    tools_used: [],\n    performance: {\n      total_execution_time: 0,\n      tools_executed: 0,\n      timestamp: new Date().toISOString()\n    },\n    success: true\n  }\n}];"
+      },
+      "id": "direct-response",
+      "name": "Direct Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Update context with response and cache it\nconst responseData = $input.item.json;\nconst contextData = $('Initialize New Context').item?.json || $('Update Existing Context').item?.json;\n\n// Add assistant response to conversation history\ncontextData.conversation_history.push({\n  role: 'assistant',\n  content: responseData.response,\n  timestamp: new Date().toISOString(),\n  tools_used: responseData.tools_used,\n  performance: responseData.performance\n});\n\n// Update metrics\ncontextData.performance_metrics.avg_response_time = \n  ((contextData.performance_metrics.avg_response_time * (contextData.performance_metrics.total_requests - 1)) + \n   responseData.performance.total_execution_time) / contextData.performance_metrics.total_requests;\n\ncontextData.tools_used = [...new Set([...contextData.tools_used, ...responseData.tools_used])];\ncontextData.metadata.last_updated = new Date().toISOString();\n\nreturn [{\n  json: {\n    session_id: contextData.session_id,\n    context_to_cache: JSON.stringify(contextData),\n    final_response: responseData.response,\n    performance_summary: {\n      total_requests: contextData.performance_metrics.total_requests,\n      avg_response_time: contextData.performance_metrics.avg_response_time,\n      tools_used: contextData.tools_used,\n      cache_efficiency: contextData.performance_metrics.cache_hits / contextData.performance_metrics.total_requests\n    }\n  }\n}];"
+      },
+      "id": "prepare-cache-update",
+      "name": "Prepare Context Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $json.session_id }}_context",
+        "value": "={{ $json.context_to_cache }}",
+        "expire": true,
+        "ttl": 3600,
+        "options": {}
+      },
+      "id": "redis-cache-context",
+      "name": "Cache Updated Context",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [2440, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis-credentials",
+          "name": "Redis Cache"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"response\": \"{{ $json.final_response }}\",\n  \"session_id\": \"{{ $json.session_id }}\",\n  \"performance\": {{ $json.performance_summary }},\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2660, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Context from Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Context from Redis": {
+      "main": [
+        [
+          {
+            "node": "Context Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Exists?": {
+      "main": [
+        [
+          {
+            "node": "Update Existing Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Initialize New Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize New Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Existing Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent LLM": {
+      "main": [
+        [
+          {
+            "node": "Analyze Tool Requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Tool Requirements": {
+      "main": [
+        [
+          {
+            "node": "Tools Required?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tools Required?": {
+      "main": [
+        [
+          {
+            "node": "MCP Filesystem Tool",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MCP Database Tool",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MCP Web Tool",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MCP Code Tool",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Direct Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Filesystem Tool": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Tool Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Database Tool": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Tool Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Web Tool": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Tool Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Code Tool": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Tool Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Tool Results": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direct Response": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Context Update": {
+      "main": [
+        [
+          {
+            "node": "Cache Updated Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cache Updated Context": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "error-handler-workflow"
+  },
+  "staticData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0",
+  "triggerCount": 1,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "ai-agent",
+      "name": "AI Agent"
+    },
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "mcp-tools",
+      "name": "MCP Tools"
+    },
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "redis-cache",
+      "name": "Redis Cache"
+    }
+  ]
+}
