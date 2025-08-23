@@ -1,0 +1,1 @@
+-- SQLite bootstrap for quick tests --
