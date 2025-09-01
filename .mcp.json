@@ -1,4 +1,7 @@
 {
   "mcpServers": {
+    "relevanceai": {
+      "url": "https://gitmcp.io/RelevanceAI/relevanceai"
+    }
   }
 }
