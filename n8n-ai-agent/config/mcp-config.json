@@ -237,6 +237,14 @@
           "windowMs": 60000
         }
       }
+    },
+    "relevanceaiDocs": {
+      "name": "RelevanceAI Docs",
+      "description": "Documentation services for RelevanceAI platform",
+      "url": "https://gitmcp.io/RelevanceAI/relevanceai",
+      "capabilities": [],
+      "configuration": {},
+      "security": {}
     }
   },
   "globalSettings": {
